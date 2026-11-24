@@ -1,0 +1,73 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Editor Data Undangan</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px system-ui;display:grid;grid-template-columns:minmax(320px,440px) 1fr;height:100dvh}
+#f{overflow:auto;padding:16px;background:#fafafa;border-right:1px solid #ddd}
+#pvw{background:#cfcfca;position:relative;overflow:hidden;display:flex;flex-direction:column}
+#dev{padding:8px;background:#fff;border-bottom:1px solid #ccc}#box{flex:1;position:relative}
+iframe{border:0;background:#fff;position:absolute;top:0;left:0;transform-origin:top left;box-shadow:0 0 20px #0003}
+fieldset{border:1px solid #ccc;margin:0 0 12px;padding:10px;background:#fff}legend{font-weight:700;padding:0 6px}
+label{display:block;margin:8px 0 2px;font-size:12px;color:#555;text-transform:capitalize}
+input,textarea{width:100%;padding:8px;border:1px solid #bbb;font:inherit;font-size:16px}
+button{padding:9px 12px;margin:4px 4px 0 0;cursor:pointer}.bar{position:sticky;top:-16px;background:#fafafa;padding:8px 0;z-index:2}
+details{margin:6px 0}#tg{display:none}
+@media(max-width:800px){body{grid-template-columns:1fr}#pvw{display:none}body.pvm #f{display:none}body.pvm #pvw{display:flex}#dev button:not(#tg){display:none}#tg,#dev #tg{display:inline-block}#tg2{display:inline-block!important}}
+#tg2{display:none}
+</style></head><body>
+<div id="f"><div class="bar"><b>Editor Data Undangan</b> <button id="tg2">Lihat preview</button><br>
+<button id="dl">Unduh data.js</button><button id="rs">Reset</button><button id="ix">Unduh index.html (untuk WhatsApp)</button>
+<details><summary>Buat link untuk banyak tamu</summary>
+<input id="bu" placeholder="https://domainmu.com/ (kosongkan = lokal)"><textarea id="gl" rows="4" placeholder="Satu nama per baris"></textarea><button id="gb">Salin semua link</button></details>
+<p style="font-size:12px;color:#666;margin:6px 0">Draf tersimpan otomatis di browser ini. Setelah selesai, unduh <code>data.js</code> dan timpa <code>data/data.js</code>.</p></div><div id="form"></div></div>
+<div id="pvw"><div id="dev"><button id="tg">← Kembali ke form</button><button data-k="HP">HP</button><button data-k="HP ↻">HP landscape</button><button data-k="Tablet">Tablet</button><button data-k="PC">PC</button></div>
+<div id="box"><iframe id="pv" src="index.html" title="Preview"></iframe></div></div>
+<script src="data/data.js"></script>
+<script>
+const orig=JSON.stringify(window.DATA);let D=JSON.parse(orig);
+try{const d=localStorage.getItem('draf');if(d)D=JSON.parse(d)}catch{}
+D.bagikan=D.bagikan||{judul:D.judul,deskripsi:'Kami mengundang Anda ke hari bahagia kami.',gambar:'assets/foto-share.jpg',urlSitus:''};
+D.backend=D.backend||{url:''};D.cover=D.cover||{judul:'welcome',sub:'to our wedding',tombol:'open invitation'};D.fotoPria=D.fotoPria??'assets/foto-pria.jpg';D.fotoWanita=D.fotoWanita??'assets/foto-wanita.jpg';
+const pv=document.getElementById('pv'),box=document.getElementById('box'),dev={HP:[390,844],'HP ↻':[844,390],Tablet:[768,1024],PC:[1366,768]};let cur='HP';
+const send=()=>{pv.contentWindow.postMessage({type:'data',data:D},'*');try{localStorage.setItem('draf',JSON.stringify(D))}catch{}};
+function fit(){const b=box.getBoundingClientRect();let [w,h]=dev[cur];if(innerWidth<=800){w=b.width;h=b.height}
+ const s=Math.min(b.width/w,b.height/h,1);Object.assign(pv.style,{width:w+'px',height:h+'px',transform:`scale(${s})`,left:(b.width-w*s)/2+'px'})}
+pv.onload=send;addEventListener('resize',fit);
+document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{cur=b.dataset.k;fit()});
+tg.onclick=tg2.onclick=()=>{document.body.classList.toggle('pvm');fit()};
+const el=(t,p)=>{const e=document.createElement(t);p.appendChild(e);return e};
+function build(o,path,par){for(const k in o){const v=o[k],p=[...path,k],lab=k.replace(/([A-Z])/g,' $1');
+ if(Array.isArray(v)&&v.length&&typeof v[0]==='object'){const fs=el('fieldset',par);el('legend',fs).textContent=lab;
+  v.forEach((it,i)=>{const g=el('fieldset',fs);el('legend',g).textContent='#'+(i+1);build(it,[...p,i],g);const b=el('button',g);b.textContent='Hapus';b.onclick=()=>{v.splice(i,1);redraw()}});
+  const a=el('button',fs);a.textContent='+ Tambah';a.onclick=()=>{const n={};for(const x in v[0])n[x]='';v.push(n);redraw()}}
+ else if(Array.isArray(v))field(lab+' (satu per baris)',v.join('\n'),par,t=>set(p,t.split('\n').filter(Boolean)),1)
+ else if(typeof v==='object'){const fs=el('fieldset',par);el('legend',fs).textContent=lab;build(v,p,fs)}
+ else field(lab,v,par,t=>set(p,t),String(v).length>60,/^foto/.test(k))}}
+function field(lab,val,par,fn,multi,pick){el('label',par).textContent=lab;const ta=multi&&!pick,i=el(ta?'textarea':'input',par);if(ta)i.rows=3;
+ i.value=String(val).startsWith('data:')?'[foto tertanam]':val;let t;i.oninput=()=>{fn(i.value);clearTimeout(t);t=setTimeout(send,250)};
+ if(pick){const f=el('input',par);f.type='file';f.accept='image/*';f.title='Pilih foto dari perangkat';f.onchange=()=>{const r=new FileReader();r.onload=()=>{const m=new Image();m.onload=()=>{
+  const s=Math.min(1,(/utama/i.test(lab)?1400:700)/Math.max(m.width,m.height)),c=document.createElement('canvas');c.width=m.width*s;c.height=m.height*s;c.getContext('2d').drawImage(m,0,0,c.width,c.height);
+  fn(c.toDataURL('image/jpeg',.82));i.value='[foto tertanam]';send()};m.src=r.result};r.readAsDataURL(f.files[0])}}}
+function set(p,v){let o=D;p.slice(0,-1).forEach(k=>o=o[k]);o[p.at(-1)]=v}
+function redraw(){form.innerHTML='';build(D,[],form);send()}
+dl.onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['window.DATA = '+JSON.stringify(D,null,2)+';\n']));a.download='data.js';a.click()};
+rs.onclick=()=>{if(confirm('Kembalikan ke data.js asli?')){D=JSON.parse(orig);redraw()}};
+gb.onclick=()=>{const base=bu.value.trim()||location.href.replace('editor.html','');const u=base.replace(/\/?$/,'/')+'index.html';
+ navigator.clipboard.writeText(gl.value.split('\n').map(s=>s.trim()).filter(Boolean).map(n=>`${n}\t${u}?to=${encodeURIComponent(n)}`).join('\n'));gb.textContent='Tersalin!'};
+ix.onclick=()=>{const b=D.bagikan;if(!b.urlSitus&&!confirm('URL situs kosong, preview WhatsApp tidak akan muncul. Lanjut?'))return;
+ const u=(b.urlSitus||'').replace(/\/?$/,'/'),A=s=>/^https?:/.test(s)?s:u+s.replace(/^\.?\//,''),e=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+ const h=`<!doctype html><html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="${e(D.warna)}"><meta name="robots" content="noindex">
+<title>${e(b.judul)}</title>
+<meta property="og:type" content="website"><meta property="og:title" content="${e(b.judul)}"><meta property="og:description" content="${e(b.deskripsi)}">
+<meta property="og:image" content="${e(A(b.gambar))}"><meta property="og:url" content="${e(u)}"><meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Ctext y='7' font-size='7'%3E♡%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mrs+Saint+Delafield&family=Roboto+Slab:wght@300;400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css"></head>
+<body class="lock"><div id="app"></div><button id="mu" aria-label="Musik" aria-pressed="false" hidden>♪</button><audio id="au" loop preload="none"></audio>
+<script src="data/data.js"><\/script><script src="js/app.js"><\/script></body></html>
+`;
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download='index.html';a.click()};
+redraw();fit();
+</script></body></html>
